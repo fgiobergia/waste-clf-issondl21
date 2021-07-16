@@ -132,65 +132,78 @@ class Model(nn.Module):
         x = self.out_linear(x)
         return torch.sigmoid(x).flatten()
 
-
-tr_list = transforms.Compose([
-    RemoveRectangle(),
-    transforms.Resize(224),
-    transforms.CenterCrop(224),
-    transforms.ToTensor(),
-    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-])
-
-
-device = "cuda:0" if torch.cuda.is_available() else "cpu"
-
-# dataset = ImagesDataset("DATASET/TRAIN", ["R","O"], transform=tr_list, limits={ "R": 9999, "O": 12565 })
-dataset = ImagesDataset("/home/dauin_user/f.giobergia/datasets/dataset/TRAIN", ["R","O"], transform=tr_list)
-ds_len = len(dataset)
-
-train_test_split = False
-
-if train_test_split:
-    train_ndx = np.random.choice(ds_len, size=int(0.8 * ds_len), replace=False)
-    test_ndx = np.array(list(set(range(ds_len)) - set(train_ndx)))
-
-    train_set = Subset(dataset, train_ndx)
-    test_set = Subset(dataset, test_ndx)
-
-    dl_train = DataLoader(train_set, batch_size=1024, pin_memory=True, shuffle=True)
-    dl_test = DataLoader(test_set, batch_size=512)
-
-else:
-    dl_train = DataLoader(dataset, batch_size=1024, pin_memory=True, shuffle=True)
-#     ds_test = ImagesDataset("/home/dauin_user/f.giobergia/datasets/dataset/TEST", [""], transform=tr_list)
-    ds_test = ImagesDataset("dataset_stage_2/TEST", [""], transform=tr_list)
-    dl_test = DataLoader(ds_test, batch_size=512)
-
-model = Model()
-model.to(device)
+if __name__ == "__main__":
+    # First the black rectangle is detected and removed from the image (see RemoveRectangle),
+    # then some standard transormations are applied (rescale + center crop + convertion to tensor + normalization)
+    tr_list = transforms.Compose([
+        RemoveRectangle(),
+        transforms.Resize(224),
+        transforms.CenterCrop(224),
+        transforms.ToTensor(),
+        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+    ])
 
 
-opt = optim.Adam(model.parameters())
-loss_func = nn.BCELoss()
+    # might as well use that sweet sweet GPU if available
+    device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
-for i in range(100):
-    print(i)
-    with tqdm(dl_train) as bar:
-        cumul_loss = 0
-        for j, (X, y, _) in enumerate(bar):
+    dataset = ImagesDataset("dataset/TRAIN", ["R","O"], transform=tr_list)
+    ds_len = len(dataset)
 
-            X = X.to(device)
-            y = y.to(device)
+    # based on whether train_test_split is true/false, we either split the dataset
+    # (for validation) or we use the entire dataset to build the "full" model (to be
+    # then applied to the actual test data)
+    train_test_split = False
 
-            opt.zero_grad()
+    if train_test_split:
+        # TODO: sklearn's train_test_split() is a much better option than doing things 
+        # manually (here, by the way, there is no stratification on y -- given that the
+        # problem is fairly well balanced it shouldn't matter too much, but still)
+        
+        # TODO: currently an 80/20 split is hardcoded here -- it should probably be parametrized
+        train_ndx = np.random.choice(ds_len, size=int(0.8 * ds_len), replace=False)
+        test_ndx = np.array(list(set(range(ds_len)) - set(train_ndx)))
 
-            y_pred = model(X)
-            loss = loss_func(y_pred, y.to(torch.float32))
+        train_set = Subset(dataset, train_ndx)
+        test_set = Subset(dataset, test_ndx)
 
-            loss.backward()
-            opt.step()
-            
-            cumul_loss += loss.item()
+        # TODO: remove magic numbers (batch sizes)
+        dl_train = DataLoader(train_set, batch_size=1024, pin_memory=True, shuffle=True)
+        dl_test = DataLoader(test_set, batch_size=512)
 
-            bar.set_postfix(loss=cumul_loss / (j+1))
-    
+    else:
+        dl_train = DataLoader(dataset, batch_size=1024, pin_memory=True, shuffle=True)
+        ds_test = ImagesDataset("dataset_stage_2/TEST", [""], transform=tr_list)
+        dl_test = DataLoader(ds_test, batch_size=512)
+
+    model = Model()
+    model.to(device)
+
+
+    opt = optim.Adam(model.parameters())
+    loss_func = nn.BCELoss()
+
+    # TODO: remove magic numbers (# of epochs)
+
+    # training loop -- for each epoch, do fwd & back prop, then gradient descent 
+    for i in range(100):
+        print(i)
+        with tqdm(dl_train) as bar:
+            cumul_loss = 0
+            for j, (X, y, _) in enumerate(bar):
+
+                X = X.to(device)
+                y = y.to(device)
+
+                opt.zero_grad()
+
+                y_pred = model(X)
+                loss = loss_func(y_pred, y.to(torch.float32))
+
+                loss.backward()
+                opt.step()
+                
+                cumul_loss += loss.item()
+
+                bar.set_postfix(loss=cumul_loss / (j+1))
+        
