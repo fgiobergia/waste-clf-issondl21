@@ -17,7 +17,7 @@ def _find_rect(img):
                 or None if no rectangle is found
     """
 
-    threshold = 30
+    threshold = 20
 
     # convert each channel (R,G,B) of the image to black/white (based on threshold)
     # then, if an image has all 3 channels black, flag that pixel as black (bw is a
