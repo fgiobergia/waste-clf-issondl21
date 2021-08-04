@@ -8,14 +8,14 @@ The problem is based on Kaggle's [Waste Classification data](https://www.kaggle.
 
 ISSonDL's dataset is a sample of the Kaggle's dataset, with 9,999 elements belonging to the class R and 12,565 elements in O (for a total of 22,564 images). The caveat, though, is that some noise has been injected in each image, in the form of a black rectangle that covers a portion of 10 to 20% of the image. Examples of images are shown below.
 
-![imgs/adyggcli.jpg](adyggcli.jpg)
+![adyggcli.jpg](imgs/adyggcli.jpg)
 
-![imgs/aaneqnqd.jpg](aaneqnqd.jpg)
+![aaneqnqd.jpg](imgs/aaneqnqd.jpg)
 
 
 By going through some of the images, though, it is fairly clear that the crawling approach used for populating the dataset isn't exactly spot on, with some images such as
 
-![imgs/azgudnzk.jpg](azgudnzk.jpg)
+![azgudnzk.jpg](imgs/azgudnzk.jpg)
 
 Which is of course labelled as Recyclable. But some noise in the inputs is to be expected, so we will push through without worrying too much. 
 
@@ -23,7 +23,7 @@ Which is of course labelled as Recyclable. But some noise in the inputs is to be
 
 The proposed solution is fairly simple and is characterized by some preprocessing and the adoption of a pretrained model with a custom head. The following image outlines the architecture of the solution (please refer to the [pdf](architecture-waste.pdf) for the "full" version, with a bunch of extra comments).
 
-![imgs/arch.png](arch.png)
+![arch.png](imgs/arch.png)
 
 All of the magic happens in [`main.py`](main.py), with the expection of some preprocessing functions, that have been included in [`preproc.py`](preproc.py). (Yes I know, having a huge main file with a bunch of functions contained within is not typically acceptable, but this is a self-contained project that will probably not be used much in the future, so maybe?)
 
