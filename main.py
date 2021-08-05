@@ -15,8 +15,6 @@ import numpy as np
 
 from PIL import Image
 
-from eval import eval_f1
-
 class ImagesDataset:
     """
     Class for loading the images in a dataset. This differs from torch's ImagesFolder
