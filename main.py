@@ -144,8 +144,9 @@ if __name__ == "__main__":
 
     # might as well use that sweet sweet GPU if available
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
+    labels_list = ["R", "O"]
 
-    dataset = ImagesDataset("dataset/TRAIN", ["R","O"], transform=tr_list)
+    dataset = ImagesDataset("dataset/TRAIN", labels_list, transform=tr_list)
     ds_len = len(dataset)
 
     # based on whether train_test_split is true/false, we either split the dataset
@@ -205,3 +206,26 @@ if __name__ == "__main__":
 
                 bar.set_postfix(loss=cumul_loss / (j+1))
         
+
+    if not train_test_split: # there is some dl_test to be actually evaluated!
+        y_preds = []
+        filenames = []
+
+        model.eval()
+
+        for X, _, fnames in dl_test:
+            X = X.to(device)
+            y_preds.extend(model(X).tolist())
+            filenames.extend(fnames)
+
+        model.train()
+
+        # This is the threshold on the output of the sigmoid to decide
+        # whether an output should be 0 (R) or 1 (O). It can be tuned
+        # with a ROC or other techniques
+        thresh = 0.65 # TODO avoid magic numbers!
+
+        y_classes = [ labels_list[y >= thresh ] for y in y_preds ]
+
+        df = pd.DataFrame(columns=["label"], index=[ os.path.splitext(os.path.basename(f))[0] for f in filenames ], data=y_classes)
+        df.to_csv("output.csv", index_label="id")
